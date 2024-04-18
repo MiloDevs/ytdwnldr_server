@@ -35,6 +35,9 @@ const clients = new Map(); // Use a Map instead of a Set to associate client IDs
 function getAudio(url, res, clientId) {
   console.log("Getting audio for url:", url);
 
+  res.setHeader("Content-Disposition", 'attachment; filename="audio.mp3"');
+  res.setHeader("Content-Type", "audio/mpeg");
+
   const stream = ytdl(url, {
     quality: "highestaudio",
     filter: "audioonly",
