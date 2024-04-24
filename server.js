@@ -44,6 +44,11 @@ function sendProgress(clientSocket, progress) {
   clientSocket.emit("progress", progress);
 }
 
+function sendLoaded(clientSocket, loaded) {
+  console.log("Loaded:", loaded);
+  clientSocket.emit("loaded", loaded);
+}
+
 function sendDownloadCompleted(clientSocket, downloaded) {
   console.log("Download completed...");
   clientSocket.emit("downloadCompletedClient", downloaded);
@@ -66,45 +71,43 @@ io.on("connection", (client) => {
   });
 });
 
+async function getAudio(url, res, clientId){
+  try {
+    const videoInfo = await ytdl.getInfo(url);
+    sendAudioDetails(clients.get(clientId), videoInfo);
+    var stream = ytdl(url, {
+      filter: "audioonly",
+      quality: "highestaudio",
+    })
+      .on("progress", (chunkLength, downloaded, total) => {
+        const progress = (downloaded / total) * 100;
+        const loaded = downloaded;
+        const clientSocket = clients.get(clientId);
+        if (clientSocket) {
+          sendProgress(clientSocket, progress);
+          sendLoaded(clientSocket, loaded);
+          if(progress === 100){
+            sendDownloadCompleted(clientSocket, downloaded);
+           
+          }
+        }
+      })
+      .pipe(res);
+   
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).send("An error occurred while processing the request.");
+  }
+}
+
 app.post("/", async (req, res) => {
   const clientId = req.body.clientId; // Assuming client sends its unique ID with the request
   const url = req.body.url;
 
   console.log("Getting audio for url:", url);
 
-  try {
-    const videoInfo = await ytdl.getInfo(url);
-    const audioFormat = ytdl.chooseFormat(videoInfo.formats, {
-      quality: "highestaudio",
-    });
-
-    // Set response headers for file download
-    res.setHeader("Content-Disposition", 'attachment; filename="audio.mp3"');
-    res.setHeader("Content-Type", "audio/mpeg");
-
-    const stream = ytdl.downloadFromInfo(videoInfo, { format: audioFormat });
-
-    stream.on("info", (info) => {
-      if (clientId && clients.has(clientId)) {
-        sendAudioDetails(clients.get(clientId), info);
-      }
-    });
-
-    stream.on("progress", (chunkLength, downloaded, total) => {
-      const progress = (downloaded / total) * 100;
-      if (clientId && clients.has(clientId)) {
-        sendProgress(clients.get(clientId), progress);
-        if (downloaded === total) {
-          sendDownloadCompleted(clients.get(clientId), downloaded);
-        }
-      }
-    });
-
-    stream.pipe(res);
-  } catch (error) {
-    console.error("Error:", error);
-    res.status(500).send("An error occurred while processing the request.");
-  }
+  getAudio(url, res, clientId);
+  
 });
 
 server.listen(port, () => {
