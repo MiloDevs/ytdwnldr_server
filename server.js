@@ -75,6 +75,10 @@ async function getAudio(url, res, clientId){
   try {
     const videoInfo = await ytdl.getInfo(url);
     sendAudioDetails(clients.get(clientId), videoInfo);
+
+    res.setHeader("Content-Disposition", `attachment; filename="${videoInfo.videoDetails.title}.mp3"`);
+    res.setHeader("Content-Type", "audio/mpeg");
+    
     var stream = ytdl(url, {
       filter: "audioonly",
       quality: "highestaudio",
@@ -93,8 +97,6 @@ async function getAudio(url, res, clientId){
       })
       .pipe(res);
 
-    res.setHeader("Content-Disposition", `attachment; filename="${videoInfo.videoDetails.title}.mp3"`);
-    res.setHeader("Content-Type", "audio/mpeg");
    
   } catch (error) {
     console.error("Error:", error);
