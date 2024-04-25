@@ -88,7 +88,12 @@ async function getAudio(url, res, clientId){
           sendLoaded(clientSocket, loaded);
           if(progress === 100){
             sendDownloadCompleted(clientSocket, downloaded);
-           
+            // set headers
+            res.setHeader("Content-Type", "audio/mpeg");
+            res.setHeader(
+              "Content-Disposition",
+              `attachment; filename="${videoInfo.videoDetails.title}.mp3"`
+            );
           }
         }
       })
