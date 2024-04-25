@@ -75,6 +75,9 @@ async function getAudio(url, res, clientId){
   try {
     const videoInfo = await ytdl.getInfo(url);
     sendAudioDetails(clients.get(clientId), videoInfo);
+
+    res.header("Content-Disposition", `attachment; filename="${videoInfo.videoDetails.title}.mp3"`);
+    res.header("Content-Type", "audio/mpeg");
     
     var stream = ytdl(url, {
       filter: "audioonly",
